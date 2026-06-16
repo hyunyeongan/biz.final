@@ -7,7 +7,7 @@ from utils import (total_sales, average_sales, to_grade, grade_to_incentive,
 st.set_page_config(page_title="매출 분석 대시보드", layout="wide")
 
 # 상단 배너 이미지 (banner.png 파일을 함께 둘 것)
-st.image("banner.png", width="stretch")
+st.image("banner.png", use_container_width=True)
 st.title("지점 매출 분석 대시보드")
 
 QUARTERS = ["1분기", "2분기", "3분기"]
@@ -24,6 +24,15 @@ if "branches" not in st.session_state:
 
 branches = st.session_state.branches
 
+# --- 상단 요약 지표 ---
+col1, col2, col3 = st.columns(3)
+col1.metric("지점 수", f"{len(branches)}개")
+
+avgs = [average_sales(b) for b in branches]
+overall = sum(avgs) / len(avgs)
+col2.metric("전체 평균(분기)", round(overall, 2))
+col3.metric("목표 달성률", f"{achievement_rate(branches):.1f}%")
+
 tab1, tab2, tab3, tab4 = st.tabs(["지점 입력", "지점별 실적", "분기별 통계", "순위 & 등급 분포"])
 
 # --- Tab 1 : 지점 추가 ---
@@ -33,18 +42,11 @@ with tab1:
     q1 = st.number_input("1분기 매출", 0, 1000, 0)
     q2 = st.number_input("2분기 매출", 0, 1000, 0)
     q3 = st.number_input("3분기 매출", 0, 1000, 0)
-    if st.button("추가")
+    if st.button("추가"):
         branches.append({"지점": name, "1분기": q1, "2분기": q2, "3분기": q3})
         st.success(f"{name} 지점을 추가했습니다.")
 
-# --- 상단 요약 지표 ---
-col1, col2, col3 = st.columns(3)
-col1.metric("지점 수", f"{len(branches)}개")
 
-avgs = [average_sales(b) for b in branches]
-overall = sum(avgs) / len(avgs)
-col2.metric("전체 평균(분기)", round(overall, 2))
-col3.metric("목표 달성률", f"{achievement_rate(branches):.1f}%")
 
 # --- Tab 2 : 지점별 실적표 ---
 with tab2:
@@ -71,13 +73,13 @@ with tab3:
         quarter = QUARTERS[i]
         with cols[i]:
             st.subheader(quarter)
-            st.write("평균: " + quarter_average(branches, quarter))
+            st.write(f"평균: {quarter_average(branches, quarter)}")
             st.write(f"최고: {quarter_top(branches, quarter)}")
 
     chart_data = []
     for quarter in QUARTERS:
         chart_data.append({"분기": quarter, "평균": quarter_average(branches, quarter)})
-    st.bar_chart(chart_data, x="분기", y="평균", horizontal=True, height=400)
+    st.bar_chart(chart_data, x="분기", y="평균", height=400)
 
 # --- Tab 4 : 순위 & 등급 분포 ---
 with tab4:
@@ -91,6 +93,6 @@ with tab4:
     st.table(rank_table)
 
     st.header("등급 분포")
-    dist = grade_distribution(brnaches)
+    dist = grade_distribution(branches)
     dist_data = [{"등급": g, "지점수": dist[g]} for g in ["A", "B", "C", "D", "F"]]
     st.bar_chart(dist_data, x="등급", y="지점수", horizontal=True, height=400)
